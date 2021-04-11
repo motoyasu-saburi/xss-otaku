@@ -99,3 +99,27 @@ class ExtendsInterfaceFoo(override val bar: Int): InterfaceFoo {
         print(qux)
     }
 }
+
+class Box<T>(var value: T)
+
+//val cat: Box<out Cat> = Box(Cat())
+//val animal: Box<out Animal> = cat
+//val animal: Box<in Animal> = Box(Animal())
+//val cat: Box<in Cat> = animal
+
+val a: List<Int> = listOf(2,3,4)
+val b: MutableList<Int> = mutableListOf()
+// b.add(2)
+// b.add(3)
+
+val ccc = intArrayOf(2,3,4)
+// ccc.map({ x -> x*x })
+// ccc.map { it * it }
+
+//try {
+//    file.bufferReader().use { reader ->
+//        ...
+//    }
+//} catch(e: IOException) {
+//    ...
+//}
