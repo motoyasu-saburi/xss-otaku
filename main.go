@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	url := "http://example.com?p=12&ddd=123"
+	url := "http://example.com?p=12"
 
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "test")
@@ -35,16 +35,16 @@ func parseUrl(target_url string) *url.URL {
 	if err != nil {
 		print(err)
 	}
-	fmt.Printf("URL: %s\n", u.String())
-	fmt.Printf("Scheme: %s\n", u.Scheme)
-	fmt.Printf("Opaque: %s\n", u.Opaque)
-	fmt.Printf("User: %s\n", u.User)
-	fmt.Printf("Host: %s\n", u.Host)
-	fmt.Printf("Hostname(): %s\n", u.Hostname())
-	fmt.Printf("Path: %s\n", u.Path)
-	fmt.Printf("RawPath: %s\n", u.RawPath)
-	fmt.Printf("RawQuery: %s\n", u.RawQuery)
-	fmt.Printf("Fragment: %s\n", u.Fragment)
+	// fmt.Printf("URL: %s\n", u.String())
+	// fmt.Printf("Scheme: %s\n", u.Scheme)
+	// fmt.Printf("Opaque: %s\n", u.Opaque)
+	// fmt.Printf("User: %s\n", u.User)
+	// fmt.Printf("Host: %s\n", u.Host)
+	// fmt.Printf("Hostname(): %s\n", u.Hostname())
+	// fmt.Printf("Path: %s\n", u.Path)
+	// fmt.Printf("RawPath: %s\n", u.RawPath)
+	// fmt.Printf("RawQuery: %s\n", u.RawQuery)
+	// fmt.Printf("Fragment: %s\n", u.Fragment)
 
 	for key, values := range u.Query() {
 		fmt.Printf("Query Key: %s\n", key)
