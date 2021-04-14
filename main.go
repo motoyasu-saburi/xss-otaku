@@ -2,15 +2,22 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 )
 
-func main() {
-	url := "http://example.com?p=12"
+type ResponseData struct {
+	header string
+	body string
+}
 
-	req, _ := http.NewRequest("GET", url, nil)
+func main() {
+	targetUrl := "http://example.com?p=12"
+
+	// TODO available: POST, PUT, etc.
+	req, _ := http.NewRequest("GET", targetUrl, nil)
 	req.Header.Set("User-Agent", "test")
 
 	dump, _ := httputil.DumpRequestOut(req, true)
@@ -27,25 +34,16 @@ func main() {
 	fmt.Printf("%s", dumpResp)
 
 	base64EncodeTest()
-	print(parseUrl(url))
+	print(parseUrl(targetUrl))
 }
 
 func parseUrl(target_url string) *url.URL {
 	u, err := url.Parse(target_url)
 	if err != nil {
-		print(err)
+		panic(err)
 	}
-	// fmt.Printf("URL: %s\n", u.String())
-	// fmt.Printf("Scheme: %s\n", u.Scheme)
-	// fmt.Printf("Opaque: %s\n", u.Opaque)
-	// fmt.Printf("User: %s\n", u.User)
-	// fmt.Printf("Host: %s\n", u.Host)
-	// fmt.Printf("Hostname(): %s\n", u.Hostname())
-	// fmt.Printf("Path: %s\n", u.Path)
-	// fmt.Printf("RawPath: %s\n", u.RawPath)
-	// fmt.Printf("RawQuery: %s\n", u.RawQuery)
-	// fmt.Printf("Fragment: %s\n", u.Fragment)
 
+	// Injection Point
 	for key, values := range u.Query() {
 		fmt.Printf("Query Key: %s\n", key)
 		for i, v := range values {
@@ -53,4 +51,32 @@ func parseUrl(target_url string) *url.URL {
 		}
 	}
 	return u
+}
+
+func requestTo(method, url string) *http.Response {
+	req, _ := http.NewRequest(method, url, nil)
+	req.Header.Set("User-Agent", "test")
+
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		// TODO handle error
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        panic(err)
+    }
+	resp.Body
+	resp.ContentLength
+	resp.
+	return resp
+}
+
+func isScannable(responseData *http.Response) bool {
+	// TODO Analyse.
+	// responseData.Body
+	return true
 }

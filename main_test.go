@@ -6,8 +6,8 @@ import (
 )
 
 func TestParseUrl(t *testing.T) {
-	expect, _ := url.Parse("example.com")
-	target := parseUrl("example.com")
+	expect, _ := url.Parse("http://example.com/abcdef?param=123&def=123#asd;123")
+	target := parseUrl("http://example.com/abcdef?param=123&def=123#asd;123")
 
 	if target.Host != expect.Host {
 		t.Errorf("Error!!!")
