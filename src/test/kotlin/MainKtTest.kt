@@ -1,4 +1,5 @@
 import com.sun.org.glassfish.gmbal.Description
+import entity.UrlParameter
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -23,11 +24,11 @@ internal class MainKtTest {
         fun testNormalParse() {
             assertEquals(
                 parseQuery(URL("http://example.com/?hoge=123")),
-                listOf(listOf("hoge", "123"))
+                listOf(UrlParameter("hoge", "123"))
             )
             assertEquals(
                 parseQuery(URL("http://example.com/?hoge=123&foo=456+")),
-                listOf(listOf("hoge", "123"), listOf("foo", "456+"))
+                listOf(UrlParameter("hoge", "123"), UrlParameter("foo", "456+"))
             )
         }
 
@@ -36,24 +37,24 @@ internal class MainKtTest {
         fun testSpecialCaseParse() {
             assertEquals(
                 parseQuery(URL("http://example.com/???")),
-                listOf(listOf("??"))
+                listOf(UrlParameter("??", ""))
             )
             assertEquals(
                 parseQuery(URL("http://example.com/?=")),
-                listOf<String>()
+                listOf<UrlParameter>()
             )
             assertEquals(
                 parseQuery(URL("http://example.com/?nameDuplicate=123&nameDuplicate=456")),
-                listOf(listOf("nameDuplicate", "123"), listOf("nameDuplicate", "456"))
+                listOf(UrlParameter("nameDuplicate", "123"), UrlParameter("nameDuplicate", "456"))
             )
             assertEquals(
                 parseQuery(URL("http://example.com/?same=same&same=same")),
-                listOf(listOf("same", "same"), listOf("same", "same"))
+                listOf(UrlParameter("same", "same"), UrlParameter("same", "same"))
             )
 
             assertEquals(
                 parseQuery(URL("http://example.com/?hoge=hoge=hoge=hoge")),
-                listOf(listOf("hoge", "hoge=hoge=hoge"))
+                listOf(UrlParameter("hoge", "hoge=hoge=hoge"))
             )
         }
     }
