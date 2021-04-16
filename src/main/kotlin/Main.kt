@@ -29,9 +29,8 @@ object Main {
 }
 
 fun parseQuery(url: URL): List<List<String?>> {
-    if(url.query == null) {
-        return listOf()
-    }
+    if(url.query.isNullOrEmpty()) return listOf()
+
     // TODO List<List<...>> --> List<Case_Class<>>
     return url.query
         .split("&")
