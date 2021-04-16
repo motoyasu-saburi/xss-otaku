@@ -4,7 +4,7 @@ import java.net.URLEncoder
 import java.net.URLDecoder
 import java.util.*
 
-data class UrlParameter(val name: String, val value: String) {
+class UrlParameter(val name: String, val value: String) {
 
     fun urlEncodeName(encoding: String = "UTF-8"): String {
         return URLEncoder.encode(this.name, encoding)
@@ -17,6 +17,10 @@ data class UrlParameter(val name: String, val value: String) {
     }
     fun urlDecodeValue(encoding: String = "UTF-8"): String {
         return URLDecoder.decode(this.value, encoding)
+    }
+
+    override fun toString(): String {
+        return "${this.name}=${this.value}"
     }
 }
 
