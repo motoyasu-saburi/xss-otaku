@@ -1,3 +1,4 @@
+import com.github.kittinunf.fuel.core.Headers
 import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
 import entity.UrlParameter
@@ -22,6 +23,7 @@ object Main {
                         val ex = result.getException()
                         println(ex)
                     }
+
                     is Result.Success -> {
                         response.headers.forEach {
                             println("${it.key} :${it.value}")
@@ -35,12 +37,13 @@ object Main {
     }
 }
 
-fun isReflectiveBody(parameter: List<UrlParameter>, responseBody: String) {
-    
+fun isReflectiveBody(responseBody: String, parameters: List<UrlParameter>): Boolean {
+    return parameters.any{ responseBody.contains(it.value) }
 }
 
-fun isReflectiveHeaders(parameter: List<UrlParameter>, responseBody: String) {
-
+fun isReflectiveHeaders(responseHeaders: Headers, parameters: List<UrlParameter>): Boolean {
+    val h = responseHeaders.toString()
+    return parameters.any{ h.contains(it.value) }
 }
 
 fun parseQuery(url: URL): List<UrlParameter> {

@@ -1,3 +1,4 @@
+import com.github.kittinunf.fuel.core.Headers
 import com.sun.org.glassfish.gmbal.Description
 import entity.UrlParameter
 import org.junit.jupiter.api.Assertions.*
@@ -57,5 +58,58 @@ internal class MainKtTest {
                 listOf(UrlParameter("hoge", "hoge=hoge=hoge"))
             )
         }
+    }
+
+    @Test
+    fun testIsReflectiveBody() {
+        val inputHtml = """ReflectA
+            <!DOCTYPE html>
+            <html>
+            <body>
+                ReflectB
+            </body>
+            </html>
+            ReflectC
+        """.trimIndent()
+
+        val inputParams1 = listOf(UrlParameter("key", "ReflectA"))
+        val inputParams2 = listOf(UrlParameter("key", "ReflectB"))
+        val inputParams3 = listOf(UrlParameter("key", "ReflectC"))
+        val inputParams4 = listOf(UrlParameter("key", "ReflectC"), UrlParameter("key2", "ReflectB)"))
+        assertTrue(isReflectiveBody(inputHtml, inputParams1))
+        assertTrue(isReflectiveBody(inputHtml, inputParams2))
+        assertTrue(isReflectiveBody(inputHtml, inputParams3))
+        assertTrue(isReflectiveBody(inputHtml, inputParams4))
+
+        val inputParams5 = listOf(UrlParameter("not_exists", "hoge"))
+        val inputParams6 = listOf<UrlParameter>()
+        assertFalse(isReflectiveBody(inputHtml, inputParams5))
+        assertFalse(isReflectiveBody(inputHtml, inputParams6))
+        val inputParams7 = listOf(UrlParameter("ReflectA", "ignore_key"))
+        assertFalse(isReflectiveBody(inputHtml, inputParams7))
+    }
+
+    @Test
+    fun testIsReflectiveHeaders() {
+        val inputHeaders = Headers()
+        inputHeaders
+            .append("key", "ReflectA")
+            .append("key2", "ReflectB")
+            .append("key2", "ReflectC")
+
+        val existsVal1 = listOf(UrlParameter("hoge", "ReflectA"))
+        val existsVal2 = listOf(UrlParameter("hoge", "ReflectB"))
+        val existsVal3 = listOf(UrlParameter("hoge", "ReflectC"))
+        assertTrue(isReflectiveHeaders(inputHeaders, existsVal1))
+        assertTrue(isReflectiveHeaders(inputHeaders, existsVal2))
+        assertTrue(isReflectiveHeaders(inputHeaders, existsVal3))
+
+        val existsVal4 = listOf(UrlParameter("notExists", "foo"))
+        assertFalse(isReflectiveHeaders(inputHeaders, existsVal4))
+        val ignoreKey1 = listOf(UrlParameter("ReflectA", "foo"))
+        assertFalse(isReflectiveHeaders(inputHeaders, ignoreKey1))
+        val ignoreKey2 = listOf(UrlParameter("key", "foo"))
+        assertFalse(isReflectiveHeaders(inputHeaders, ignoreKey2))
+
     }
 }
