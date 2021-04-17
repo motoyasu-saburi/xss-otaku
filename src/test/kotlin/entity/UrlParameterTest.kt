@@ -3,7 +3,6 @@ package entity
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Nested
 
 internal class UrlParameterTest {
 
@@ -31,12 +30,9 @@ internal class UrlParameterTest {
         assertEquals(u.urlDecodeValue(), "/")
     }
 
-    @Nested
-    inner class ToString {
-        @Test
-        fun testToString() {
-            val u = UrlParameter("abc", "123")
-            assertEquals(u.toString(), "abc=123")
-        }
+    @Test
+    fun testToString() {
+        val u = UrlParameter("abc", "123")
+        assertEquals(u.toString(), "abc=123")
     }
 }

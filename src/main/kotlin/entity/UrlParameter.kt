@@ -2,7 +2,6 @@ package entity
 
 import java.net.URLEncoder
 import java.net.URLDecoder
-import java.util.*
 
 class UrlParameter(val name: String, val value: String) {
 
