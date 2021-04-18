@@ -112,4 +112,8 @@ internal class MainKtTest {
         assertFalse(isReflectiveHeaders(inputHeaders, ignoreKey2))
 
     }
+
+    @Test
+    fun isReflectiveResponse() {
+    }
 }
