@@ -17,6 +17,7 @@ dependencies {
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
+    testImplementation("org.mock-server:mockserver-netty:5.11.2")
 
     implementation("com.github.kittinunf.fuel:fuel:2.3.1")
 }
