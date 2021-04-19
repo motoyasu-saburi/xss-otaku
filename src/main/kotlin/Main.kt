@@ -3,6 +3,7 @@ import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
 import entity.UrlParameter
 import java.net.*
+import java.util.*
 
 
 object Main {
@@ -46,11 +47,13 @@ fun isReflectiveHeaders(responseHeaders: Headers, parameters: List<UrlParameter>
 }
 
 fun parseQuery(url: URL): List<UrlParameter> {
-    if(url.query.isNullOrEmpty()) return listOf()
+    if(url.query.isNullOrEmpty()) return listOf<UrlParameter>()
 
     return url.query
         .split("&")
         .map{ it.split("=", limit=2) } // if contain two (more) the Equal, ignore two.
         .filter { it[0].isNotEmpty() }
         .map { UrlParameter(it[0], it.getOrElse(1){""}) }
+        .toList()
+
 }
