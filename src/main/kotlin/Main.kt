@@ -47,13 +47,12 @@ fun isReflectiveHeaders(responseHeaders: Headers, parameters: List<UrlParameter>
 }
 
 fun parseQuery(url: URL): List<UrlParameter> {
-    if(url.query.isNullOrEmpty()) return listOf<UrlParameter>()
+    if(url.query.isNullOrEmpty()) return emptyList()
 
     return url.query
         .split("&")
         .map{ it.split("=", limit=2) } // if contain two (more) the Equal, ignore two.
         .filter { it[0].isNotEmpty() }
         .map { UrlParameter(it[0], it.getOrElse(1){""}) }
-        .toList()
 
 }

@@ -1,6 +1,5 @@
 import com.github.kittinunf.fuel.core.Headers
 import entity.UrlParameter
-import io.kotest.core.spec.style.StringSpec
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.shouldBe
 import java.net.URL

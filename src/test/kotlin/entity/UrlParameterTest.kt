@@ -1,38 +1,32 @@
 package entity
 
-import org.junit.jupiter.api.Test
-
+import io.kotest.core.spec.style.StringSpec
 import org.junit.jupiter.api.Assertions.*
 
-internal class UrlParameterTest {
 
-    @Test
-    fun urlEncodeName() {
+class UrlParameterTest: StringSpec({
+    "urlEncodeName should encode parameter name" {
         val u = UrlParameter("/", "slash")
         assertEquals(u.urlEncodeName(), "%2F")
     }
 
-    @Test
-    fun urlEncodeValue() {
+    "urlEncodeValue should encode parameter value" {
         val u = UrlParameter("slash", "/")
         assertEquals(u.urlEncodeValue(), "%2F")
     }
 
-    @Test
-    fun urlDecodeName() {
+    "urlDecodeName should decode parameter name" {
         val u = UrlParameter("%2F", "/")
         assertEquals(u.urlDecodeName(), "/")
     }
 
-    @Test
-    fun urlDecodeValue() {
+    "urlDecodeValue should decode parameter value" {
         val u = UrlParameter("/", "%2f")
         assertEquals(u.urlDecodeValue(), "/")
     }
 
-    @Test
-    fun testToString() {
+    "toString should return a string consisting of Key and Value concatenated with '='" {
         val u = UrlParameter("abc", "123")
         assertEquals(u.toString(), "abc=123")
     }
-}
+})
