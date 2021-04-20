@@ -26,7 +26,7 @@ class MainKtTest: WordSpec({
             "return List UrlParameter" {
                 val actual = parseQuery(URL("http://example.com/?hoge=123"))
                 val expect = listOf(UrlParameter("hoge", "123"))
-                 actual.shouldContainExactly(expect) //shouldContainInOrder // shouldContainAll  //   //shouldBe
+                 actual.shouldContainExactly(expect) 
 
 
                 parseQuery(URL("http://example.com/?hoge=123&foo=456+")) shouldContainExactly
@@ -147,5 +147,17 @@ class MainKtTest: WordSpec({
     "isRefrectiveResponse" When {
         // TODO
     }
-})
 
+
+    "combineUrlParams" When {
+        "combine any params" should {
+            "return a concatenated parameter string" {
+                val params: List<UrlParameter> = listOf(
+                    UrlParameter("abc", "123"),
+                    UrlParameter("xyz", "890")
+                )
+                combineUrlParams(params) shouldBe "abc=123&xyz=890"
+            }
+        }
+    }
+})
