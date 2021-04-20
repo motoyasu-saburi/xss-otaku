@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainInOrder
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,17 +12,6 @@ import java.net.URL
 
 
 class MainKtTest: WordSpec({
-
-    "list test" When {
-        "test" should {
-            "return test" {
-                val s = listOf(UrlParameter("hoge", "123"), UrlParameter("foo", "456+"))
-                val d = listOf(UrlParameter("hoge", "123"), UrlParameter("foo", "456+"))
-                s shouldContainExactly d
-            }
-        }
-    }
-
 
     "parseQuery" When {
 
