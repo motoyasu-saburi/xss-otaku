@@ -1,11 +1,28 @@
 import com.github.kittinunf.fuel.core.Headers
 import entity.UrlParameter
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.matchers.collections.shouldContainAll
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContainInOrder
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.net.URL
 
 
 class MainKtTest: WordSpec({
+
+    "list test" When {
+        "test" should {
+            "return test" {
+                val s = listOf(UrlParameter("hoge", "123"), UrlParameter("foo", "456+"))
+                val d = listOf(UrlParameter("hoge", "123"), UrlParameter("foo", "456+"))
+                s shouldContainExactly d
+            }
+        }
+    }
+
+
     "parseQuery" When {
 
         "parse no parameter" should {
@@ -14,12 +31,15 @@ class MainKtTest: WordSpec({
             }
         }
 
+
         "parse normal url parameters" should {
             "return List UrlParameter" {
-                parseQuery(URL("http://example.com/?hoge=123")) shouldBe
-                        listOf(UrlParameter("hoge", "123"))
+                val actual = parseQuery(URL("http://example.com/?hoge=123"))
+                val expect = listOf(UrlParameter("hoge", "123"))
+                 actual.shouldContainExactly(expect) //shouldContainInOrder // shouldContainAll  //   //shouldBe
 
-                parseQuery(URL("http://example.com/?hoge=123&foo=456+")) shouldBe
+
+                parseQuery(URL("http://example.com/?hoge=123&foo=456+")) shouldContainExactly
                         listOf(UrlParameter("hoge", "123"), UrlParameter("foo", "456+"))
             }
         }
@@ -32,7 +52,7 @@ class MainKtTest: WordSpec({
 
         "parse '?' only url parameters" should {
             "return the second and subsequent '?' " {
-                parseQuery(URL("http://example.com/???")) shouldBe
+                parseQuery(URL("http://example.com/???")) shouldContainInOrder
                         listOf(UrlParameter("??", ""))
             }
         }
@@ -41,14 +61,14 @@ class MainKtTest: WordSpec({
             "return a list with the same name but with independent keys List UrlParameters" {
                 parseQuery(
                     URL("http://example.com/?nameDuplicate=123&nameDuplicate=456")
-                ) shouldBe listOf(
+                ) shouldContainInOrder listOf(
                     UrlParameter("nameDuplicate", "123"),
                     UrlParameter("nameDuplicate", "456")
                 )
 
                 parseQuery(
                     URL("http://example.com/?same=same&same=same")
-                ) shouldBe listOf(
+                ) shouldContainInOrder listOf(
                     UrlParameter("same", "same"),
                     UrlParameter("same", "same")
                 )
@@ -57,7 +77,7 @@ class MainKtTest: WordSpec({
 
         "parse parameters with no '&' and continuous '='" should {
             "return List of UrlParameter separated into key value by the first '='" {
-                parseQuery(URL("http://example.com/?hoge=hoge=hoge=hoge")) shouldBe
+                parseQuery(URL("http://example.com/?hoge=hoge=hoge=hoge")) shouldContainInOrder
                         listOf(UrlParameter("hoge", "hoge=hoge=hoge"))
             }
         }

@@ -54,5 +54,6 @@ fun parseQuery(url: URL): List<UrlParameter> {
         .map{ it.split("=", limit=2) } // if contain two (more) the Equal, ignore two.
         .filter { it[0].isNotEmpty() }
         .map { UrlParameter(it[0], it.getOrElse(1){""}) }
+        .toList()
 
 }
