@@ -26,7 +26,7 @@ class MainKtTest: WordSpec({
             "return List UrlParameter" {
                 val actual = parseQuery(URL("http://example.com/?hoge=123"))
                 val expect = listOf(UrlParameter("hoge", "123"))
-                 actual.shouldContainExactly(expect) 
+                 actual.shouldContainExactly(expect)
 
 
                 parseQuery(URL("http://example.com/?hoge=123&foo=456+")) shouldContainExactly
@@ -157,6 +157,22 @@ class MainKtTest: WordSpec({
                     UrlParameter("xyz", "890")
                 )
                 combineUrlParams(params) shouldBe "abc=123&xyz=890"
+            }
+        }
+    }
+
+    "genParametersWithEachParamReplacePayloads" When {
+        "replace each url parameters to payloads" should {
+            "return concated parameters string" {
+                genParametersWithEachParamReplacePayloads(
+                    "http://example.com/?param1=123&param2=456",
+                    listOf("payloadA", "payloadB")
+                ) shouldBe listOf(
+                    "param1=payloadA&param2=456",
+                    "param1=payloadB&param2=456",
+                    "param1=123&param2=payloadA",
+                    "param1=123&param2=payloadB",
+                )
             }
         }
     }

@@ -3,7 +3,6 @@ import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.result.Result
 import entity.UrlParameter
 import java.net.*
-import java.util.*
 
 
 object Main {
@@ -21,36 +20,26 @@ fun combineUrlParams(params: List<UrlParameter>): String {
         .replaceFirst("&", "")
 }
 
-//fun genUrlWithEachParamReplaced(fullUrl: String, payloads: List<String>): List<String> {
-//    //TODO
-//    val url = URL(fullUrl)
-//    val fullQueries: String = url.query
-//    val queries: List<UrlParameter> = parseQuery(url)
-//
-//    var replacedFullUrls = []
-//    for (q in queries) {
-//        queries.toString()
-//    }
-//
-//
-//    queries.map { query ->
-//        payloads.map { pay ->
-//            query.value.replace()
-//        }
-//    }
-//}
-//
-//fun parameterLoop(fullUrl: String, params: List<UrlParameter>): List<String> {
-//    val url = URL(fullUrl)
-//    val queries: List<UrlParameter> = parseQuery(url)
-//
-//    val payloads: List<String> = listOf("payload1", "payload2")
-//
-//    queries.map {  }
-//
-//    fullUrl.replace(url.query, "")
-//}
 
+
+fun genUrlWithEachParamReplaced(fullUrl: String, payloads: List<String>): Unit {
+    // TODO
+}
+
+fun genParametersWithEachParamReplacePayloads(fullUrl: String, payloads: List<String>): List<String> {
+    val url = URL(fullUrl)
+    val queries: List<UrlParameter> = parseQuery(url)
+
+    val payloadsResult: MutableList<String> = mutableListOf()
+    for(i in queries.indices) {
+        val copied = queries.toMutableList()
+        for(p in payloads) {
+            copied[i] = UrlParameter(queries[i].name, p)
+            payloadsResult.add(combineUrlParams(copied))
+        }
+    }
+    return payloadsResult
+}
 
 fun isReflective(full_url: String): Boolean {
     val (_, response, result) = full_url.httpGet().responseString()
