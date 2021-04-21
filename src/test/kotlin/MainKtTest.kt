@@ -176,4 +176,9 @@ class MainKtTest: WordSpec({
             }
         }
     }
+
+    "genUrlWithEachParamReplaced" When {
+        "req" should {}
+    }
+
 })

@@ -20,10 +20,15 @@ fun combineUrlParams(params: List<UrlParameter>): String {
         .replaceFirst("&", "")
 }
 
+fun genUrlWithEachParamReplaced(url: URL, payloads: List<String>): Unit {
+    payloads.forEach{
+        val newUrl = url.toString().replace(url.query.toRegex(), it)
+        val (_, response, result) = newUrl.httpGet().responseString()
+    }
+}
 
+fun replaceUrlParam(fullUrl: String, replaceQuery: String) {
 
-fun genUrlWithEachParamReplaced(fullUrl: String, payloads: List<String>): Unit {
-    // TODO
 }
 
 fun genParametersWithEachParamReplacePayloads(fullUrl: String, payloads: List<String>): List<String> {
@@ -81,5 +86,4 @@ fun parseQuery(url: URL): List<UrlParameter> {
         .map{ it.split("=", limit=2) } // if contain two (more) the Equal, ignore two. (e.g. foo===)
         .filter { it[0].isNotEmpty() }
         .map { UrlParameter(it[0], it.getOrElse(1){""}) }
-
 }
