@@ -25,6 +25,85 @@ Main
  --> scan()
  --> photon() + crawl()
 
+# scan()
+```
+1. Parameter（GET URL以外のパラメータ）の有無で POST, GETを決定
+2. protocol(http, https) の決定。
+   target URLが https だった場合、httpsのリクエストを送って対応しているか確認。
+   https がだめだったら以後のリクエストは http ベースになる。 
+   
+3. if not skipDOM:
+   (skipDOM : クロール中にDOMXSSスキャンをスキップするフラグ）
+   ここでは、脆弱性のポテンシャルがあるDOM脆弱性をチェックしている。（時間がかかる処理のためON/OFFできる）
+   
+   1. highlighted = dom(response)  
+      
+ 
+```
+
+## dom()
+
+### dom() の概要
+（textベースの）responseを解析するメソッドで、DOMベースの潜在的な脆弱性を持つDOMを `highligted` の配列で返す。
+
+メソッドの冒頭で3つの正規表現を変数 `sources`, `sinks`, `scripts` にてそれぞれ宣言しており、
+`scripts` ( `<script>...</script>` )にマッチした箇所を深堀して脆弱性の有無を確認するというのが
+全体の処理（ `sources`, `sinks` はその中で利用している）
+
+* sources: よく使われる脆弱性が入り込みやすい JS のメソッド類の検知 (e.g. `location.href` など) 
+* sinks: 
+  - eval, Function, setTimeout などの Function型を引っ張って来れそうなメソッド類
+  - document.innerHtml, document.location などのよくあるケース  
+* scripts: `<script>...</script> のケース
+
+sources:
+```
+r'''document\.(URL|documentURI|URLUnencoded|baseURI|cookie|referrer)|location\.(href|search|hash|pathname)|window\.name|history\.(pushState|replaceState)(local|session)Storage'''
+
+マッチ例：
+document.URL
+location.href
+window.name
+history.pushState
+localStrage
+```
+
+sinks:
+```
+sinks = r'''eval|evaluate|execCommand|assign|navigate|getResponseHeaderopen|showModalDialog|Function|set(Timeout|Interval|Immediate)|execScript|crypto.generateCRMFRequest|ScriptElement\.(src|text|textContent|innerText)|.*?\.onEventName|document\.(write|writeln)|.*?\.innerHTML|Range\.createContextualFragment|(document|window)\.location'''
+```
+
+scripts:
+```
+scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
+
+つまり
+<script> or <script{なんかの文字の連続...}> でスタートし、
+間が任意の文字列の連続（の最短マッチ）で
+</script> で終わる 
+
+(?i) = 大文字小文字を区別しない
+(?s) = Regexの . (なんでも１文字にマッチ）で、改行にもマッチする様にする
+```
+
+### dom() のフロー
+```
+1. `<script>...</script>` 系統のタグを全て取得
+2. 1.で取得した <script> タグを使ってループ
+    1. <script>...</script> を \n で split し、行単位になった JS と思われる行でループ
+        1. parts なる部品にするため、行を `var ` で splitする
+        2. parts が存在する場合、
+
+```
+
+
+
+
+# bruteforcer()
+
+# photon()  +crawl()
+
+
 # singleFuzz()
 
 ファザーは、フィルターとWebアプリケーションファイアウォールをテストするためのものです。ランダムに*遅延要求を送信し、遅延は最大30秒になる可能性があるため、非常に低速です。遅延を最小限に抑えるには、-dオプションを使用して遅延を1秒に設定します。

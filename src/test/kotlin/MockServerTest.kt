@@ -1,3 +1,4 @@
+import io.kotest.core.spec.style.AnnotationSpec
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 
@@ -34,4 +35,20 @@ class MockServerTest {
   "err": "unauthorized"
 }
 """.trimIndent()
+
+
+    fun TestA() {
+        // Response Que
+        // webServer.enqueue(successResponse)
+        //webServer.enqueue(failResponse)¥
+
+    }
+
+    @AnnotationSpec.After
+    fun cleanUp() {
+        webServer.shutdown()
+    }
+
+    // Check Request Parameter
+    // webServer.takeRequest().headers[<ヘッダー名>]
 }
