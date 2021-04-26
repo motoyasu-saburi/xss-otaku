@@ -92,8 +92,35 @@ scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
 2. 1.で取得した <script> タグを使ってループ
     1. <script>...</script> を \n で split し、行単位になった JS と思われる行でループ
         1. parts なる部品にするため、行を `var ` で splitする
-        2. parts が存在する場合、
-
+        2. parts が存在する場合に以下のループを行う　（が、何度読んでもデッドコードに見える・・・）
+           (過去ログ見ると前までグローバル変数だったのでバグ。コントリビュートチャンスですよ、誰か）
+           https://github.com/s0md3v/XSStrike/commit/3723a95db48b6cb25f098db2c4c16aa52c488236#diff-8ba4e7bf4b3f2db95f21f25a97061568e527589b36ec6d2d692a5d2c42c5c4f7L8
+        
+           > controlledVariables = set()   
+           > allControlledVariables = set()  # ここで後続のループに使う配列を初期化して
+           >  if len(parts) > 1:             # ここが 2. の「parts の有無の確認箇所」で、
+           >    for part in parts:           # part =  ["var ", "aa=123"] 形式
+           >      for controlledVariable in allControlledVariables:  # ここ、３行上で（毎ループ）初期化してるから、デッドコードでは・・・  
+           >        if controlledVariable in part:
+           >          controlledVariables.add(re.search(r'[a-zA-Z$_][a-zA-Z0-9$_]+', part).group().replace('$', '\$'))
+           
+            # TODO あとでここがグローバル変数になった前提で見直す
+            1. （毎ループ / 初期化したばかりの）配列を使ってループする
+              1. もし controlledVariable が part の中に入っている場合
+                1. {英字, $, _} から始まって {英""数字"", $, _} が連続する文字列から $ -> \$ に置換する
+                2. それを controlledVariable に追加する
+        
+        3. script の行に対し `source` ( document.location, location.href など)でサーチする
+        4. 見つかった興味深い JS の行でループする
+            1. js 列から空白スペースを消す
+            2. 事前に見つけておいた `var ...` の箇所について、存在した様であれば次
+                1. その `var ` でループする
+                2. `source` があったということで `sourceFound` フラグを trueにしつつ
+                   controlledVariables に `source` を追加する
+                   
+        5. これまで見つかった `controlledVariables` を保持するために
+           `allControlledVariables` に追加する。
+        6. 
 ```
 
 
