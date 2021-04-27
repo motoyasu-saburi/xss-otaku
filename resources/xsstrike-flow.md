@@ -119,8 +119,15 @@ scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
                    controlledVariables に `source` を追加する
                    
         5. これまで見つかった `controlledVariables` を保持するために
-           `allControlledVariables` に追加する。
-        6. 
+            1. `allControlledVariables` に追加する。
+        6. （一つ上で追加した） `allControlledVariables` でループ
+            1. matches = list(filter(None, re.findall(r'\b%s\b' % controlledVariable, line)))
+               controlledVariables から、 <script>タグの中の行（各行）を「\b」(スペースなどで区切られた箇所にマッチ)を抽出する
+            　　(どうでもいいけど list(filter(None ...)) は初めて見た)
+            
+                1. もしマッチした行があればその部分を抽出する
+                    ... のだが、なんか見つかった一個目しか line に入れてなくね？ 
+                    line = re.sub(r'\b%s\b' % controlledVariable, controlledVariable, line)
 ```
 
 
