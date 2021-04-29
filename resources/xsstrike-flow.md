@@ -92,6 +92,12 @@ scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
 2. 1.で取得した <script> タグを使ってループ
     1. <script>...</script> を \n で split し、行単位になった JS と思われる行でループ
         1. parts なる部品にするため、行を `var ` で splitする
+        
+        ###
+        # <script>タグ間の１行を `var ` でスプリットし変数宣言的な形になっていた場合
+        # （バグってるから動かない気がするが）変数っぽいパラメータがあったら
+        #  それを controlledVariables にいれる
+        ###
         2. parts が存在する場合に以下のループを行う　（が、何度読んでもデッドコードに見える・・・）
            (過去ログ見ると前までグローバル変数だったのでバグ。コントリビュートチャンスですよ、誰か）
            https://github.com/s0md3v/XSStrike/commit/3723a95db48b6cb25f098db2c4c16aa52c488236#diff-8ba4e7bf4b3f2db95f21f25a97061568e527589b36ec6d2d692a5d2c42c5c4f7L8
@@ -110,6 +116,10 @@ scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
                 1. {英字, $, _} から始まって {英""数字"", $, _} が連続する文字列から $ -> \$ に置換する
                 2. それを controlledVariable に追加する
         
+        ###
+        # 行が `document.location="..."` などだった場合
+        # `document.location` の文字だけ取得する
+        ###
         3. script の行に対し `source` ( document.location, location.href など)でサーチする
         4. 見つかった興味深い JS の行でループする
             1. js 列から空白スペースを消す
@@ -128,6 +138,14 @@ scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
                 1. もしマッチした行があればその部分を抽出する
                     ... のだが、なんか見つかった一個目しか line に入れてなくね？ 
                     line = re.sub(r'\b%s\b' % controlledVariable, controlledVariable, line)
+                         
+        ###
+        # スクリプトの行が ` eval("alert(0)") ` だったら `eval` のみを抽出する
+        ###
+        7. <script></script> の現在のループ行に対して、 `eval`, `Function` などのコードを Injection できる型や関数を検出
+            1. 対象の関数などがあれば、その要素だけを抽出する。
+               つまり、 ` eval("alert(0)") ` があった場合、 `eval` のみで抽出する
+               
 ```
 
 
