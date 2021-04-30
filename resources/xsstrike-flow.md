@@ -88,66 +88,171 @@ scripts = re.findall(r'(?i)(?s)<script[^>]*>(.*?)</script>', response)
 
 ### dom() のフロー
 ```
-1. `<script>...</script>` 系統のタグを全て取得
-2. 1.で取得した <script> タグを使ってループ
-    1. <script>...</script> を \n で split し、行単位になった JS と思われる行でループ
-        1. parts なる部品にするため、行を `var ` で splitする
-        
-        ###
-        # <script>タグ間の１行を `var ` でスプリットし変数宣言的な形になっていた場合
-        # （バグってるから動かない気がするが）変数っぽいパラメータがあったら
-        #  それを controlledVariables にいれる
-        ###
-        2. parts が存在する場合に以下のループを行う　（が、何度読んでもデッドコードに見える・・・）
-           (過去ログ見ると前までグローバル変数だったのでバグ。コントリビュートチャンスですよ、誰か）
-           https://github.com/s0md3v/XSStrike/commit/3723a95db48b6cb25f098db2c4c16aa52c488236#diff-8ba4e7bf4b3f2db95f21f25a97061568e527589b36ec6d2d692a5d2c42c5c4f7L8
-        
-           > controlledVariables = set()   
-           > allControlledVariables = set()  # ここで後続のループに使う配列を初期化して
-           >  if len(parts) > 1:             # ここが 2. の「parts の有無の確認箇所」で、
-           >    for part in parts:           # part =  ["var ", "aa=123"] 形式
-           >      for controlledVariable in allControlledVariables:  # ここ、３行上で（毎ループ）初期化してるから、デッドコードでは・・・  
-           >        if controlledVariable in part:
-           >          controlledVariables.add(re.search(r'[a-zA-Z$_][a-zA-Z0-9$_]+', part).group().replace('$', '\$'))
-           
-            # TODO あとでここがグローバル変数になった前提で見直す
-            1. （毎ループ / 初期化したばかりの）配列を使ってループする
-              1. もし controlledVariable が part の中に入っている場合
-                1. {英字, $, _} から始まって {英""数字"", $, _} が連続する文字列から $ -> \$ に置換する
-                2. それを controlledVariable に追加する
-        
-        ###
-        # 行が `document.location="..."` などだった場合
-        # `document.location` の文字だけ取得する
-        ###
-        3. script の行に対し `source` ( document.location, location.href など)でサーチする
-        4. 見つかった興味深い JS の行でループする
-            1. js 列から空白スペースを消す
-            2. 事前に見つけておいた `var ...` の箇所について、存在した様であれば次
-                1. その `var ` でループする
-                2. `source` があったということで `sourceFound` フラグを trueにしつつ
-                   controlledVariables に `source` を追加する
-                   
-        5. これまで見つかった `controlledVariables` を保持するために
-            1. `allControlledVariables` に追加する。
-        6. （一つ上で追加した） `allControlledVariables` でループ
-            1. matches = list(filter(None, re.findall(r'\b%s\b' % controlledVariable, line)))
-               controlledVariables から、 <script>タグの中の行（各行）を「\b」(スペースなどで区切られた箇所にマッチ)を抽出する
-            　　(どうでもいいけど list(filter(None ...)) は初めて見た)
-            
-                1. もしマッチした行があればその部分を抽出する
-                    ... のだが、なんか見つかった一個目しか line に入れてなくね？ 
-                    line = re.sub(r'\b%s\b' % controlledVariable, controlledVariable, line)
-                         
-        ###
-        # スクリプトの行が ` eval("alert(0)") ` だったら `eval` のみを抽出する
-        ###
-        7. <script></script> の現在のループ行に対して、 `eval`, `Function` などのコードを Injection できる型や関数を検出
-            1. 対象の関数などがあれば、その要素だけを抽出する。
-               つまり、 ` eval("alert(0)") ` があった場合、 `eval` のみで抽出する
-               
+Main
+
+大きく以下の４つの分岐
+ --> singleFuzz()
+ --> bruteforcer()
+ --> scan()
+ --> photon() + crawl()
 ```
 
+今回の `dom()`  を call しているのは `scan()` の内部です。
+[https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/modes/scan.py#L37:title]
+
+
+馬鹿正直に読んだせいでアホみたいに疲れました。
+では見ていきましょう。
+
+# dom() の概要
+
+メソッドに引数とか description とか一切ないので読んだ限りのやつを記載しておきます。
+具体的なフローは次の節にて。
+
+
+`dom()` の概要は、
+XSSで悪用が可能な要素を見つけて、それに関わる行を返すというのが全体の処理になります。
+（この `XSSで悪用が可能` な要素のことを Injectable っぽそうな値　と勝手に読んでます）
+
+つまり、 `dom()` では、 Injectable っぽそうな関数・型・変数などを見つける処理を実施します。
+
+これは
+* sources と呼称される `document.location` , `location.href`, `history.pushState` などの要素
+* sinks と呼称される `eval`, `document.innerHTML`, `Function` などの要素
+* 及び `sources`, `sinks` で見つかった関数・変数の結果を入れている変数  (e.g. `var xxx = eval("...")` の `xxx`)
+  を検出し、リストで返すという感じです。
+
+
+## 全体フロー
+
+では、全体のフローを見てみましょう。
+
+今回も自作XSSスキャナーのためにかなり丁寧に読んでるので、分量が多いです。
+
+前回の記載を踏まえて以下の様な書き方をしています。
+
+* （ある程度）元のコードのインデントを尊重した形式で記載
+*  処理のまとまりには `#`  を使って勝手にコメント
+
+```md
+1. HTMLデータから全ての `<script>...</script>` を取得し、タグの中身(文字列）を抽出 (以下、抽出した部分を "JSコード_FULL" と呼称）
+   (つまり <script> 部分は除いた `console.log(0)` みたいな場所だけ抽出）
+   
+2. 取得した JSコード_FULL(複数） を使ってループ
+    1. JSコード（単体） を \n で split し、行単位になったものを使ってループ（以下、 `script` と呼称 )
+        
+        #######################################
+        #  JSコードから、 "var " で split する。
+        #  おそらく JSコード から意味のある場所（特に XSS に悪用できそうな Injectable な可能性が高い場所）を抽出している
+        #  (この Injectable な可能性が高い箇所、というのは、次に出てくる大きな一塊の処理部分にて (`source` 変数に定義された regexを使って) 検出している） 
+        #  このひとまとまりの処理の後方にて（バグってるから動かない気がするが...）変数っぽいパラメータがあったら
+        #  それを controlledVariables にいれている。
+        #  
+        #  まとめると、この処理部分では
+        #     1. 後述する Injectable っぽそうな処理を行っている行 
+        #     2. その処理が入っている変数（ 要するに、 Injectable っぽそうな変数 ）
+        #     を検出している。
+        #
+        #  この処理の塊の当該行数:
+        #  https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/core/dom.py#L18-L25
+        #######################################
+        1. parts なる部品にするため、 `script` を `var ` で splitする (JSコードの構成要素として分離している。この行以降、配列の状態であれば `parts`, 個別の場合は `part` と記載する。)
+        2. parts が存在する場合に以下のループを行う　（が、現行では多分デッドコード）
+           (原因は、途中で出てくる `controlledVariables`, `allControlledVariables` の変数が、ループの都度初期化されてるため。
+            過去ログ見ると前までグローバル変数だったのでおそらくバグ。コントリビュートチャンスですよ、誰か。
+            過去ログ: https://github.com/s0md3v/XSStrike/commit/3723a95db48b6cb25f098db2c4c16aa52c488236#diff-8ba4e7bf4b3f2db95f21f25a97061568e527589b36ec6d2d692a5d2c42c5c4f7L8）
+            
+           # 現行コード抜粋
+           > for newLine in script:
+           > ...
+           >     controlledVariables = set()          # ループ内で毎回初期化（コード的にこっちは正常っぽそう）
+           >     allControlledVariables = set()       # ループ内で毎回初期化（こっちはバグっぽい）
+           >         if len(parts) > 1:               # "var " が存在する行か（つまり、 Injectable っぽそうな行かの判別用？）
+           >             for part in parts:           # part =  ["var ", "aa=123"] 形式
+           >                 for controlledVariable in allControlledVariables:  # （問題の箇所) 3行上で（毎ループ）初期化してるから、デッドコード  
+           >                     if controlledVariable in part:
+           >                         controlledVariables.add(re.search(r'[a-zA-Z$_][a-zA-Z0-9$_]+', part).group().replace('$', '\$'))
+           
+           
+           # 以下、上記のバグがない（ Global 変数前提）で推測まじりに書く
+           1. `allControlledVariables` を使ってループを行う。
+           　　この `allControlledVariables` は、後ほど出てくる `source` の regex で発見された箇所が入ってくる。
+              ( `document.location`, `history.localStrage` などの検知 regex )
+              
+                1. allControlledVariables の中身のどれかが、現在処理中の part に部分的にでも含まれている場合、次の処理を行う
+                    1. regex `[a-zA-Z$_][a-zA-Z0-9$_]+` で文字を抽出し、 `controlledVariable` に保管
+                    
+                      regex 部分は `$abc`, `_abc`, `abc` などにマッチ。
+                      controlledVariables は、 (先述した) `allControlledVariables` に値をあとで移し替える用の（一時的？）な配列っぽそう。
+                      
+        #######################################
+        #  行に `var xxx = document.location` などが含まれている場合 ( Injectable な可能性がある場合）
+        #  `document.location` の部分を取得する
+        #  その処理( document.location など）が、 parts の中に存在する場合、
+        #  その変数名を抽出して `controlledVariables` に追記しておく。
+        #  ついでに `sourceFound` Flagを True にしておく。
+        # 
+        #  この処理の塊の当該行数:
+        #  https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/core/dom.py#L26-L35
+        #######################################
+        
+        3. script の行に対し `source` ( document.location, location.href など)でサーチする
+        4. 見つかった Injectable っぽそうな JS の行でループする
+            1. `var xxx = location.href` などの見つけた箇所から、 `location.href` などの部分を抽出
+            2. parts 配列の中に `location.href` (このループで見つかった Injectable っぽそうな処理を含む行） はあるか？
+                1. 見つかった Injectable っぽそうな処理を含む変数を抽出し、 `controlledVariables` に追加
+                2. `sourceFound` フラグを true にする
+           
+        ####################################### 
+        #  これまで見つかった `controlledVariables` を、（バグって初期化しまくっちゃう）`allControlledVariables` に追加する 
+        #  その後、追加を行った `allControlledVariables` の各変数名が、現在ループ中のJSコードの行に含まれているかを確認する。
+        #  存在した場合は `line = ["tmp_dir"]` みたいな感じで、その要素を line 変数にいれる（かなり謎。 append ではなく上書きだし、バグでは？）
+        #
+        #  この処理の当該行数:
+        #  https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/core/dom.py#L37-L42
+        #######################################          
+        5. これまで見つかった `controlledVariables` を保持するために、 
+        　　現行ループ内で見つかった Injectable っぽそうな変数名の一覧 `controlledVariables` の各要素を `allControlledVariables` に  add する
+        6. （一つ上で追加した）これまでの全ての Injectable っぽそうな変数名の一覧 `allControlledVariables` でループ
+              
+            1. 現在のJSコードの行に、これまでの Injectable っぽそうな変数名があるかチェック
+            
+                1. もしマッチした行があればその変数名を抽出する
+                    ... のだが、なんか見つかったやつを毎度 line 変数に上書きしているので一個しか検出しなさそう。
+                         
+        #######################################
+        #  JSコードの行部分から、Injectable っぽそうなメソッド部分(など）を抽出する。
+        #  例えば、行が ` eval("alert(0)") ` だったら `eval` のみを抽出する
+        #
+        #  この処理の当該行数:
+        #  https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/core/dom.py#L43-L49
+        #######################################
+        7. JSコードの現在の行部分から、 `eval`, `Function` などのコードを Injection できる型や関数として抽出する
+            1. 対象の関数などがあれば、その要素だけを抽出する。 (つまり `eval` 部分のみを抽出）
+            2. sinkFound フラグを True にする
+            
+        #######################################
+        # これまでの結果をまとめる（返り値となる配列に要素を追加）
+        #
+        # この処理の当該行数:
+        # https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/core/dom.py#L50-L51
+        #######################################
+        8. これまでの処理の中で、 
+           * sinkFound のフラグが立った行
+           * sourceFound のフラグが立った行 
+           * Injectableっぽそうな変数が含まれていた行
+         　の場合は、その行を `highligted` 配列に追加する。
+           この highlited 配列が、 `dom()` メソッドの返り値になる（ならないこともある。それは後ほど）
+
+
+
+################
+# 当該処理: https://github.com/s0md3v/XSStrike/blob/0ecedc1bba149931e3b32e53422d5b7c089ba9dc/core/dom.py#L55-L56
+################
+3. これまでの処理で、 `sinkFound` と `sourceFound` が見つかった場合、
+   `highligted` 配列を返す。
+   なければ空配列を返す
+```
 
 
 
