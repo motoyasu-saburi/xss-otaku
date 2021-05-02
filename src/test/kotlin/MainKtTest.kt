@@ -1,13 +1,9 @@
 import com.github.kittinunf.fuel.core.Headers
 import entity.UrlParameter
 import io.kotest.core.spec.style.WordSpec
-import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainInOrder
-import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.net.URL
 
 
