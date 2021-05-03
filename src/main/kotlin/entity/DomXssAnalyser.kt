@@ -11,49 +11,37 @@ data class InterestingLine(
 
 class DomXssAnalyser {
 
-    // TODO fix to immutable
-    val controlledVariables = mutableListOf<String>() // maybe Not need
-
-
     fun analyse(rawHtml: String): MutableList<InterestingLine> {
         val allControlledVariables = mutableListOf<InterestingLine>()
-
         val scripts = extractScriptTags(rawHtml)
 
         // TODO maybe divide to method
         scripts.forEach { script ->
             val scriptsSplitInLines = splitScriptIntoLines(script)
             val linesContainingVar = filterLinesWithNoVariable(scriptsSplitInLines)
-
             val splitNewLine = splitScriptIntoLines(script)
             val filterVal = filterLinesWithNoVariable(splitNewLine)
+
             val allVariables = filterVal
                 .map { extractVariableNames(it) }
-                .filter { it.isPresent }
-                .map { it.get() }
+                .filterNotNull()
 
-            // TODO bug
             val lineContainingVariable = linesContainingVar.filter { line ->
                 allVariables.any { v -> line.indexOf(v) != -1 }
             }
-            if(lineContainingVariable.isEmpty()) {
-                return@forEach // Skip
-            }
+
+            if(lineContainingVariable.isEmpty()) return@forEach // skip
 
             val sources = linesContainingVar
                 .map { extractSourceProcessFromJsCode(it) }
-                .filter { it.isPresent }
-                .map { it.get() }
+                .filterNotNull()
 
             val sinks = linesContainingVar
                 .map { extractSinkProcessFromJsCode(it) }
-                .filter { it.isPresent }
-                .map { it.get() }
+                .filterNotNull()
 
-            if(sources.isEmpty() || sinks.isEmpty()) {
-                // TODO Store characteristic variable name
-                return@forEach // skip
-            }
+            // TODO Store characteristic variable name
+            if(sources.isEmpty() || sinks.isEmpty()) return@forEach // skip
 
             if(sources.isNotEmpty() && sinks.isNotEmpty()) {
                 allControlledVariables.add(
@@ -66,18 +54,8 @@ class DomXssAnalyser {
                 )
             }
         }
-        allControlledVariables.forEach {
-            print(it)
-        }
         return allControlledVariables
     }
-
-//    fun formatHtml(rawHtml: String) {
-        // TODO?
-//        検知前の整形処理で method chain, Object の改行部分を整形し直す
-//        変数を先に抽出する処理を行なってから Sink, Source の検知を行う （ XSStrike では合わせて抽出処理を行なっているため、コード前半に問題があるケースでは漏らしそうなイメージ。もしかしたらズレてるかも）
-//        sink, source の regex の改善 (検知タイプの追加）
-//    }
 
     fun extractScriptTags(html: String): List<String> {
         /**
@@ -92,7 +70,6 @@ class DomXssAnalyser {
     }
 
     fun splitScriptIntoLines(script: String): List<String> {
-//        return script.split("\n", "; ", ");")    TODO remove (or tuning)  "; ", ");"
         return script.split("\n")
     }
 
@@ -108,25 +85,21 @@ class DomXssAnalyser {
             .filter { it != "" }
     }
 
-    fun extractVariableNames(js: String): Optional<String> {
+    fun extractVariableNames(js: String): String? {
         val regex = "[a-zA-Z\$_][a-zA-Z0-9\$_]+".toRegex()
-        val variableNames = regex.find(js) ?: return Optional.empty<String>()
-        return Optional.of(variableNames.groupValues[0])
+        val variableNames = regex.find(js) ?: return null
+        return variableNames.groupValues[0]
     }
 
-    fun extractSourceProcessFromJsCode(js: String): Optional<String> {
+    fun extractSourceProcessFromJsCode(js: String): String? {
         val regex: Regex = "document.(URL|documentURI|URLUnencoded|baseURI|cookie|referrer)|location.(href|search|hash|pathname)|window.name|history.(pushState|replaceState)(local|session)Storage".toRegex()
-        val source = regex.find(js) ?: return Optional.empty<String>()
-        return Optional.of(source.groupValues[0])
+        val source = regex.find(js) ?: return null
+        return source.groupValues[0]
     }
 
-    fun extractSinkProcessFromJsCode(js: String): Optional<String> {
+    fun extractSinkProcessFromJsCode(js: String): String? {
         val regex: Regex = "eval|evaluate|execCommand|assign|navigate|getResponseHeaderopen|showModalDialog|Function|set(Timeout|Interval|Immediate)|execScript|crypto.generateCRMFRequest|ScriptElement.(src|text|textContent|innerText)|.*?.onEventName|document.(write|writeln)|.*?.innerHTML|Range.createContextualFragment|(document|window).location".toRegex()
-        val sink = regex.find(js) ?: return Optional.empty<String>()
-        return Optional.of(sink.groupValues[0])
-    }
-
-    fun extractCharacteristicJsCode() {
-
+        val sink = regex.find(js) ?: return null
+        return sink.groupValues[0]
     }
 }

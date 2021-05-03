@@ -67,9 +67,7 @@ class DomXssAnalyserTest: WordSpec() {
             "extract from code containing the Source (e.g. location.href) process" should {
                 "extract it" {
                     dxa.extractSourceProcessFromJsCode("var x = location.href; alert(x);")
-                        .shouldBe(
-                            Optional.of("location.href")
-                        )
+                        .shouldBe("location.href")
                 }
             }
         }
@@ -78,9 +76,7 @@ class DomXssAnalyserTest: WordSpec() {
             "extract from code containing the Sink (e.g. eval) process" should {
                 "extract it" {
                     dxa.extractSinkProcessFromJsCode("var message = 'abc'; eval(message);")
-                        .shouldBe(
-                            Optional.of("eval")
-                        )
+                        .shouldBe("eval")
                 }
             }
         }
