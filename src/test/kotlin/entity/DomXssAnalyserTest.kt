@@ -1,10 +1,10 @@
 package entity
 
 import io.kotest.core.spec.style.WordSpec
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 
 import org.junit.jupiter.api.Assertions.*
-
+import java.util.*
 
 class DomXssAnalyserTest: WordSpec() {
     val dxa = DomXssAnalyser()
@@ -24,41 +24,66 @@ class DomXssAnalyserTest: WordSpec() {
     }
 
     init {
-//        "extractScriptTags()" When {
-//            "extract <script> data from raw HTML string" should {
-//                "xxx" {
-//                    assertEquals(
-//                        listOf("<script>alert(0)</script>"),
-//                        dxa.extractScriptTags(genHtml("<script>alert(0)</script>"))
-//                    )
-//                }
-//            }
-//        }
-
         "analyse()" When {
-//            "input normal html" should {
-//                "no detect" {
-//                    assertEquals(dxa.analyse(genHtml("")), emptyList<InterestingLine>())
-//                    assertEquals(dxa.analyse(genHtml("<script></script>")), emptyList<InterestingLine>())
-//                    assertEquals(dxa.analyse(genHtml("<script>alert(0)</script>")), emptyList<InterestingLine>())
-//                    assertEquals(dxa.analyse(genHtml("<script>var xxx = 'wow'; alert(xxx);</script>")), emptyList<InterestingLine>())
-//                }
-//            }
-//            "input no detected script" should {
-//                "no detect" {
-//                    assertEquals(dxa.analyse(genHtml("<script>var url = location.href; eval(url);</script>")), emptyList<InterestingLine>())
-//                }
-//            }
+            "input no detected script" should {
+                "no detect" {
+                    assertEquals(
+                        dxa.analyse(genHtml("<script>var url = location.href; eval(url);</script>")),
+                        listOf(InterestingLine(
+                            line="var url = location.href; eval(url);",
+                            variable = listOf("url"),
+                            sink = listOf("eval"),
+                            source = listOf("location.href")
+                        ))
+                    )
+                }
+            }
 
-            "input detect script" should {
-                assertEquals(
-//                    dxa.analyse(genHtml("<script type='text/javascript'>var url = location.href; eval(url);</script>")),
-                    dxa.analyse(genHtml("<script>var url = location.href; eval(url);</script>")),
-                    1
-                    //emptyList<InterestingLine>()
-                )
-
+            "input normal html" should {
+                "no detect" {
+                    assertEquals(dxa.analyse(genHtml("")), emptyList<InterestingLine>())
+                    assertEquals(dxa.analyse(genHtml("<script></script>")), emptyList<InterestingLine>())
+                    assertEquals(dxa.analyse(genHtml("<script>alert(0)</script>")), emptyList<InterestingLine>())
+                    assertEquals(
+                        dxa.analyse(genHtml("<script>var xxx = 'wow'; alert(xxx);</script>")),
+                        emptyList<InterestingLine>()
+                    )
+                }
             }
         }
+
+        "extractScriptTags()" When {
+            "extract <script> data from raw HTML string" should {
+                "xxx" {
+                    listOf("alert(0)").shouldBe(
+                        dxa.extractScriptTags(genHtml("<script>alert(0)</script>"))
+                    )
+
+                }
+            }
+        }
+
+        "extractSourceProcessFromJsCode()" When {
+            "extract from code containing the Source (e.g. location.href) process" should {
+                "extract it" {
+                    dxa.extractSourceProcessFromJsCode("var x = location.href; alert(x);")
+                        .shouldBe(
+                            Optional.of("location.href")
+                        )
+                }
+            }
+        }
+
+        "extractSinkProcessFromJsCode()" When {
+            "extract from code containing the Sink (e.g. eval) process" should {
+                "extract it" {
+                    dxa.extractSinkProcessFromJsCode("var message = 'abc'; eval(message);")
+                        .shouldBe(
+                            Optional.of("eval")
+                        )
+                }
+            }
+        }
+
     }
 }

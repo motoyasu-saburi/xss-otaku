@@ -1,10 +1,12 @@
 package entity
 
+import java.util.*
+
 data class InterestingLine(
     val line: String, // TODO rename. one line js code
     val variable: List<String>, // TODO rename multiple name
-    val hasSource: List<String>, // TODO rename has to ???
-    val hasSink: List<String> // TODO rename has to ???
+    val source: List<String>, // TODO rename has to ???
+    val sink: List<String> // TODO rename has to ???
 )
 
 class DomXssAnalyser {
@@ -18,39 +20,50 @@ class DomXssAnalyser {
 
         val scripts = extractScriptTags(rawHtml)
 
-        val allVariables = scripts.map { script ->
-            val splitNewLine = splitScriptIntoLines(script)
-            val filterVal = filterLinesWithNoVariable(splitNewLine)
-            val result = filterVal.map { extractVariableNames(it) }
-            result
-        }
-
         // TODO maybe divide to method
-        scripts.map { script ->
+        scripts.forEach { script ->
             val scriptsSplitInLines = splitScriptIntoLines(script)
             val linesContainingVar = filterLinesWithNoVariable(scriptsSplitInLines)
 
-            val lineContainingVariable = allVariables.filter { linesContainingVar.contains(it) }
+            val splitNewLine = splitScriptIntoLines(script)
+            val filterVal = filterLinesWithNoVariable(splitNewLine)
+            val allVariables = filterVal
+                .map { extractVariableNames(it) }
+                .filter { it.isPresent }
+                .map { it.get() }
+
+            // TODO bug
+            val lineContainingVariable = linesContainingVar.filter { line ->
+                allVariables.any { v -> line.indexOf(v) != -1 }
+            }
             if(lineContainingVariable.isEmpty()) {
-               // TODO skip
+                return@forEach // Skip
             }
 
-            val sources = linesContainingVar.flatMap { extractSourceProcessFromJsCode(it) }
-            val sinks = linesContainingVar.flatMap { extractSinkProcessFromJsCode(it) }
+            val sources = linesContainingVar
+                .map { extractSourceProcessFromJsCode(it) }
+                .filter { it.isPresent }
+                .map { it.get() }
 
-            if(sources.isNotEmpty() || sinks.isNotEmpty()) {
+            val sinks = linesContainingVar
+                .map { extractSinkProcessFromJsCode(it) }
+                .filter { it.isPresent }
+                .map { it.get() }
+
+            if(sources.isEmpty() || sinks.isEmpty()) {
+                // TODO Store characteristic variable name
+                return@forEach // skip
             }
 
             if(sources.isNotEmpty() && sinks.isNotEmpty()) {
                 allControlledVariables.add(
                     InterestingLine(
                         line = script,
-                        variable = listOf(""),//lineContainingVariable,
-                        hasSource = sources,
-                        hasSink = sinks
+                        variable = allVariables, // TODO change to lineContainingVariable,
+                        source = sources,
+                        sink = sinks
                     )
                 )
-                print(lineContainingVariable)
             }
         }
         allControlledVariables.forEach {
@@ -79,7 +92,8 @@ class DomXssAnalyser {
     }
 
     fun splitScriptIntoLines(script: String): List<String> {
-        return script.split("\n", "; ", ");")
+//        return script.split("\n", "; ", ");")    TODO remove (or tuning)  "; ", ");"
+        return script.split("\n")
     }
 
     fun filterLinesWithNoVariable(scripts: List<String>): List<String> {
@@ -94,26 +108,22 @@ class DomXssAnalyser {
             .filter { it != "" }
     }
 
-    fun extractVariableNames(script: String): String {
+    fun extractVariableNames(js: String): Optional<String> {
         val regex = "[a-zA-Z\$_][a-zA-Z0-9\$_]+".toRegex()
-        val variableNames = regex.findAll(script).map { it.value }
-        return variableNames.//.get(1).replace("$", "\$")
+        val variableNames = regex.find(js) ?: return Optional.empty<String>()
+        return Optional.of(variableNames.groupValues[0])
     }
 
-    fun extractSourceProcessFromJsCode(js: String): List<String> {
-        val sources: Regex = "document.(URL|documentURI|URLUnencoded|baseURI|cookie|referrer)|location.(href|search|hash|pathname)|window.name|history.(pushState|replaceState)(local|session)Storage".toRegex()
-        val sourceMatches = sources.matchEntire(js) ?: return listOf()
-
-        // Memo: maybe change Any String to Single String
-        return sourceMatches.groupValues
+    fun extractSourceProcessFromJsCode(js: String): Optional<String> {
+        val regex: Regex = "document.(URL|documentURI|URLUnencoded|baseURI|cookie|referrer)|location.(href|search|hash|pathname)|window.name|history.(pushState|replaceState)(local|session)Storage".toRegex()
+        val source = regex.find(js) ?: return Optional.empty<String>()
+        return Optional.of(source.groupValues[0])
     }
 
-    fun extractSinkProcessFromJsCode(js: String): List<String> {
-        val sinks: Regex = "eval|evaluate|execCommand|assign|navigate|getResponseHeaderopen|showModalDialog|Function|set(Timeout|Interval|Immediate)|execScript|crypto.generateCRMFRequest|ScriptElement.(src|text|textContent|innerText)|.*?.onEventName|document.(write|writeln)|.*?.innerHTML|Range.createContextualFragment|(document|window).location".toRegex()
-        val sinkMatches = sinks.matchEntire(js) ?: return listOf()
-
-        // Memo: maybe change Any String to Single String
-        return sinkMatches.groupValues
+    fun extractSinkProcessFromJsCode(js: String): Optional<String> {
+        val regex: Regex = "eval|evaluate|execCommand|assign|navigate|getResponseHeaderopen|showModalDialog|Function|set(Timeout|Interval|Immediate)|execScript|crypto.generateCRMFRequest|ScriptElement.(src|text|textContent|innerText)|.*?.onEventName|document.(write|writeln)|.*?.innerHTML|Range.createContextualFragment|(document|window).location".toRegex()
+        val sink = regex.find(js) ?: return Optional.empty<String>()
+        return Optional.of(sink.groupValues[0])
     }
 
     fun extractCharacteristicJsCode() {
