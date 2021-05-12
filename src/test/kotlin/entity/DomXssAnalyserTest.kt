@@ -39,13 +39,13 @@ class DomXssAnalyserTest: WordSpec() {
                     val multipleLineScript = "<script>var aaa = \"example\";\nvar url = location.href; eval(url);\nvar bbb = \"xxx\";\n</script>"
                     val expectLine = "var aaa = \"example\";\nvar url = location.href; eval(url);\nvar bbb = \"xxx\";\n"
 
-                    dxa.analyse(multipleLineScript)[0].shouldBe(
+                    dxa.analyse(multipleLineScript).shouldBe(
                         mutableListOf(InterestingLine(
                             line = expectLine,
                             variable = listOf("aaa", "url", "bbb"),
                             sink = listOf("eval"),
                             source = listOf("location.href")
-                        ))[0]
+                        ))
                     )
                 }
             }
